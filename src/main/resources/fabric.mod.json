@@ -1,0 +1,40 @@
+{
+	"schemaVersion": 1,
+	"id": "dfdevkeyboardshortcuts",
+	"version": "${version}",
+	"name": "DfDevKeyboardShortcuts",
+	"description": "Use the first hotbar slot for keyboard shortcuts to place codeblocks",
+	"authors": [
+		"minecrafttom256"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "MIT",
+	"icon": "assets/dfdevkeyboardshortcuts/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"net.tom.dfdevkeyboardshortcuts.DfDevKeyboardShortcuts"
+		],
+		"client": [
+			"net.tom.dfdevkeyboardshortcuts.DfDevKeyboardShortcutsClient"
+		],
+		"fabric-datagen": [
+			"net.tom.dfdevkeyboardshortcuts.DfDevKeyboardShortcutsDataGenerator"
+		]
+	},
+	"mixins": [
+		"dfdevkeyboardshortcuts.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.15",
+		"minecraft": "~1.21.3",
+		"java": ">=17",
+		"fabric-api": "*"
+	},
+	"suggests": {
+		"another-mod": "*"
+	}
+}
