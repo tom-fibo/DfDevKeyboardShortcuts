@@ -5,7 +5,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
@@ -43,7 +42,7 @@ public class DfDevKeyboardShortcutsClient implements ClientModInitializer {
 
     public static boolean isActive(BlockPos targetPos) {
         MinecraftClient client = MinecraftClient.getInstance();
-        if (isExecuting || client.player == null || !client.player.isCreative()) {
+        if (isExecuting || client.player == null || !client.player.isCreative() || client.currentScreen != null) {
             return false;
         }
         Block targetBlock = client.world.getBlockState(targetPos).getBlock();
@@ -112,10 +111,6 @@ public class DfDevKeyboardShortcutsClient implements ClientModInitializer {
                 return ActionResult.FAIL;
             }
             return ActionResult.PASS;
-        });
-
-        ClientTickEvents.END_CLIENT_TICK.register((client) -> {
-
         });
     }
 
