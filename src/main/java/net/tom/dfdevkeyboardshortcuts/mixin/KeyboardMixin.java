@@ -1,17 +1,21 @@
 package net.tom.dfdevkeyboardshortcuts.mixin;
 
-import net.minecraft.client.Keyboard;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.item.Items;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.HitResult;
-import net.tom.dfdevkeyboardshortcuts.DfDevKeyboardShortcutsClient;
-import net.tom.dfdevkeyboardshortcuts.KeyBinds;
 import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+import net.minecraft.client.Keyboard;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.option.KeyBinding;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.hit.HitResult;
+import net.tom.dfdevkeyboardshortcuts.DfDevKeyboardShortcutsClient;
+import net.tom.dfdevkeyboardshortcuts.KeyBinds;
 
 @Mixin(Keyboard.class)
 public class KeyboardMixin {
@@ -21,6 +25,23 @@ public class KeyboardMixin {
             return;
         }
         MinecraftClient client = MinecraftClient.getInstance();
+        KeyBinding dropKey = client.options.dropKey;
+        KeyBinding loadToolbarKey = client.options.loadToolbarActivatorKey;
+        if (client.currentScreen == null && (dropKey.matchesKey(key, scancode) || loadToolbarKey.matchesKey(key, scancode)) && client.player != null) {
+            ItemStack mainHandStack = client.player.getInventory().getMainHandStack();
+            if (mainHandStack.getItem() != Items.NETHERITE_BLOCK || mainHandStack.get(DataComponentTypes.CUSTOM_DATA) == null) {
+                //here
+                if (dropKey.matchesKey(key, scancode)) {
+                    boolean entireStack = MinecraftClient.IS_SYSTEM_MAC ? modifiers == GLFW.GLFW_MOD_SUPER : modifiers == GLFW.GLFW_MOD_CONTROL;
+                    client.player.dropSelectedItem(entireStack);
+                } else if (loadToolbarKey.matchesKey(key, scancode)) {
+                    net.minecraft.client.option.KeyBinding.onKeyPressed(loadToolbarKey.getDefaultKey());
+                }
+                ci.cancel();
+                return;
+            }
+        }
+
         if (client.crosshairTarget == null || client.crosshairTarget.getType() != HitResult.Type.BLOCK) {
             return;
         }
