@@ -49,7 +49,7 @@ public class DfDevKeyboardShortcutsClient implements ClientModInitializer {
         if (noInteractBlocks.contains(targetBlock)) {
             return false;
         }
-        ItemStack mainHandStack = client.player.getInventory().getMainHandStack();
+        ItemStack mainHandStack = client.player.getMainHandStack();
         if (mainHandStack.getItem() != Items.NETHERITE_BLOCK) {
             return false;
         }
@@ -127,7 +127,7 @@ public class DfDevKeyboardShortcutsClient implements ClientModInitializer {
         try {
 
             // Place the new block
-            int slot = 36 + player.getInventory().selectedSlot; // First hotbar slot
+            int slot = 36 + player.getInventory().getSlotWithStack(player.getMainHandStack()); // First hotbar slot
 
             ItemStack originalStack = player.getInventory().getStack(0).copy();
             Item itemToPlace = player.isSneaking() ? sneakItem : normalItem;
