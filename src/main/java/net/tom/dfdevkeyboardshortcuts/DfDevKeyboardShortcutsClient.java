@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
@@ -12,6 +13,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
+import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.NbtComponent;
 import net.minecraft.entity.player.PlayerEntity;
@@ -30,6 +32,7 @@ import net.minecraft.util.math.Direction;
 public class DfDevKeyboardShortcutsClient implements ClientModInitializer {
 
     private static boolean isExecuting = false;
+    private static boolean updateInventory = false;
     public static final String NBT_TAG = "dfdevkeyboardshortcuts";
     private static Set<Block> noInteractBlocks = new HashSet<Block>(
             Arrays.asList(Blocks.OAK_WALL_SIGN, Blocks.CHEST, Blocks.IRON_BLOCK,
@@ -65,9 +68,17 @@ public class DfDevKeyboardShortcutsClient implements ClientModInitializer {
         KeyBinds.register();
 
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
-            MinecraftClient client = MinecraftClient.getInstance();
             if (message.getString().contains("You are now in dev mode.")) {
-                if (client.player != null && client.player.isCreative() && client.getNetworkHandler() != null) {
+                updateInventory = true;
+            }
+        });
+
+        ClientTickEvents.END_CLIENT_TICK.register((a) -> {
+            if (updateInventory) {
+                updateInventory = false;
+                MinecraftClient client = MinecraftClient.getInstance();
+                ClientPlayerEntity player = client.player;
+                if (player != null && player.isCreative() && client.getNetworkHandler() != null) {
 
                     ItemStack netheriteBlock = new ItemStack(Items.NETHERITE_BLOCK);
 
@@ -80,14 +91,12 @@ public class DfDevKeyboardShortcutsClient implements ClientModInitializer {
                             Text.literal("Codeblock").styled(style -> style.withItalic(false)));
 
                     ClientPlayNetworkHandler networkHandler = client.getNetworkHandler();
-                    networkHandler
-                            .sendPacket(new CreativeInventoryActionC2SPacket(36, netheriteBlock));
+                    networkHandler.sendPacket(new CreativeInventoryActionC2SPacket(36, netheriteBlock));
                     networkHandler.sendPacket(new CreativeInventoryActionC2SPacket(43, new ItemStack(Items.AIR)));
                     networkHandler.sendPacket(new CreativeInventoryActionC2SPacket(44, new ItemStack(Items.AIR)));
-                    client.player.getInventory().setStack(0, netheriteBlock);
-                    client.player.getInventory().setStack(7, new ItemStack(Items.AIR));
-                    client.player.getInventory().setStack(8, new ItemStack(Items.AIR));
-
+                    player.getInventory().setStack(0, netheriteBlock);
+                    player.getInventory().setStack(7, new ItemStack(Items.AIR));
+                    player.getInventory().setStack(8, new ItemStack(Items.AIR));
                 }
             }
         });
