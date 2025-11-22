@@ -28,18 +28,20 @@ public class KeyboardMixin {
         KeyBinding dropKey = client.options.dropKey;
         KeyBinding loadToolbarKey = client.options.loadToolbarActivatorKey;
         if (client.currentScreen == null
-                && (dropKey.matchesKey(key, scancode) || loadToolbarKey.matchesKey(key, scancode))
+                && (dropKey.matchesKey(key, scancode) || loadToolbarKey.matchesKey(key, scancode)
+                        || KeyBinds.Z_KEY.matchesKey(key, scancode))
                 && client.player != null) {
             ItemStack mainHandStack = client.player.getMainHandStack();
             if (mainHandStack.getItem() != Items.NETHERITE_BLOCK
                     || mainHandStack.get(DataComponentTypes.CUSTOM_DATA) == null) {
-                //here
                 if (dropKey.matchesKey(key, scancode)) {
                     boolean entireStack = MinecraftClient.IS_SYSTEM_MAC ? modifiers == GLFW.GLFW_MOD_SUPER
                             : modifiers == GLFW.GLFW_MOD_CONTROL;
                     client.player.dropSelectedItem(entireStack);
                 } else if (loadToolbarKey.matchesKey(key, scancode)) {
                     net.minecraft.client.option.KeyBinding.onKeyPressed(loadToolbarKey.getDefaultKey());
+                } else if (KeyBinds.Z_KEY.matchesKey(key, scancode)) {
+                    DfDevKeyboardShortcutsClient.updateInventory = true;
                 }
                 ci.cancel();
                 return;

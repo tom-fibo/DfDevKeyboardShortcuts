@@ -17,22 +17,24 @@ import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.NbtComponent;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.packet.c2s.play.CreativeInventoryActionC2SPacket;
+import net.minecraft.network.packet.c2s.play.PlayerInputC2SPacket;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
+import net.minecraft.util.PlayerInput;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
 
 public class DfDevKeyboardShortcutsClient implements ClientModInitializer {
 
     private static boolean isExecuting = false;
-    private static boolean updateInventory = false;
+    public static boolean updateInventory = false;
     public static final String NBT_TAG = "dfdevkeyboardshortcuts";
     private static Set<Block> noInteractBlocks = new HashSet<Block>(
             Arrays.asList(Blocks.OAK_WALL_SIGN, Blocks.CHEST, Blocks.IRON_BLOCK,
@@ -63,6 +65,19 @@ public class DfDevKeyboardShortcutsClient implements ClientModInitializer {
         return customData.copyNbt().contains(NBT_TAG);
     }
 
+    public static ItemStack getCodeBlock() {
+        ItemStack netheriteBlock = new ItemStack(Items.NETHERITE_BLOCK);
+
+        NbtCompound nbt = new NbtCompound();
+        nbt.putBoolean(NBT_TAG, true);
+        netheriteBlock.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbt));
+
+        netheriteBlock.set(DataComponentTypes.CUSTOM_NAME,
+                Text.literal("Codeblock").styled(style -> style.withItalic(false)));
+
+        return netheriteBlock;
+    }
+
     @Override
     public void onInitializeClient() {
         KeyBinds.register();
@@ -80,23 +95,22 @@ public class DfDevKeyboardShortcutsClient implements ClientModInitializer {
                 ClientPlayerEntity player = client.player;
                 if (player != null && player.isCreative() && client.getNetworkHandler() != null) {
 
-                    ItemStack netheriteBlock = new ItemStack(Items.NETHERITE_BLOCK);
-
-                    NbtCompound nbt = new NbtCompound();
-
-                    nbt.putBoolean(NBT_TAG, true);
-                    netheriteBlock.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbt));
-
-                    netheriteBlock.set(DataComponentTypes.CUSTOM_NAME,
-                            Text.literal("Codeblock").styled(style -> style.withItalic(false)));
+                    ItemStack netheriteBlock = getCodeBlock();
 
                     ClientPlayNetworkHandler networkHandler = client.getNetworkHandler();
+                    PlayerInventory inventory = player.getInventory();
                     networkHandler.sendPacket(new CreativeInventoryActionC2SPacket(36, netheriteBlock));
-                    networkHandler.sendPacket(new CreativeInventoryActionC2SPacket(43, new ItemStack(Items.AIR)));
-                    networkHandler.sendPacket(new CreativeInventoryActionC2SPacket(44, new ItemStack(Items.AIR)));
-                    player.getInventory().setStack(0, netheriteBlock);
-                    player.getInventory().setStack(7, new ItemStack(Items.AIR));
-                    player.getInventory().setStack(8, new ItemStack(Items.AIR));
+                    inventory.setStack(0, netheriteBlock);
+                    if (inventory.getStack(7).getItem() == Items.DIAMOND
+                            && inventory.getStack(7).getName().getString().contains("Code Blocks")) {
+                        networkHandler.sendPacket(new CreativeInventoryActionC2SPacket(43, new ItemStack(Items.AIR)));
+                        inventory.setStack(7, new ItemStack(Items.AIR));
+                    }
+                    if (inventory.getStack(8).getItem() == Items.IRON_INGOT
+                            && inventory.getStack(8).getName().getString().contains("Values")) {
+                        networkHandler.sendPacket(new CreativeInventoryActionC2SPacket(44, new ItemStack(Items.AIR)));
+                        inventory.setStack(8, new ItemStack(Items.AIR));
+                    }
                 }
             }
         });
@@ -135,31 +149,31 @@ public class DfDevKeyboardShortcutsClient implements ClientModInitializer {
         isExecuting = true;
         try {
 
-            // Place the new block
             int slot = 36 + player.getInventory().getSlotWithStack(player.getMainHandStack()); // First hotbar slot
+            boolean isSneaking = client.player.isSneaking();
 
-            ItemStack originalStack = player.getInventory().getStack(0).copy();
-            Item itemToPlace = player.isSneaking() ? sneakItem : normalItem;
+            //ItemStack originalStack = player.getInventory().getStack(slot).copy();
+            Item itemToPlace = isSneaking ? sneakItem : normalItem;
             ItemStack newStack = new ItemStack(itemToPlace);
 
             //BlockPos signPos = hitResult.getBlockPos().offset(Direction.WEST);
 
             client.getNetworkHandler().sendPacket(new CreativeInventoryActionC2SPacket(slot, newStack));
 
+            if (isSneaking) {
+                client.getNetworkHandler().sendPacket(
+                        new PlayerInputC2SPacket(new PlayerInput(false, false, false, false, false, false, false)));
+            }
             client.interactionManager.interactBlock(client.player, Hand.MAIN_HAND, hitResult);
-
-            if (client.player.isSneaking()
-                    && shiftOffsetBlocks.contains(client.world.getBlockState(hitResult.getBlockPos()).getBlock())) {
-                BlockPos stoneOffsetPos = hitResult.getBlockPos().offset(Direction.SOUTH);
-                client.interactionManager.interactBlock(client.player, Hand.MAIN_HAND,
-                        new BlockHitResult(stoneOffsetPos.toCenterPos(), Direction.UP, stoneOffsetPos, false));
-                //signPos = stoneOffsetPos.offset(Direction.WEST);
+            if (isSneaking) {
+                client.getNetworkHandler().sendPacket(new PlayerInputC2SPacket(client.player.getLastPlayerInput()));
             }
 
             //client.interactionManager.interactBlock(client.player, Hand.OFF_HAND,
             //        new BlockHitResult(signPos.toCenterPos(), Direction.UP, signPos, false));
 
-            client.getNetworkHandler().sendPacket(new CreativeInventoryActionC2SPacket(slot, originalStack));
+            client.getNetworkHandler().sendPacket(new CreativeInventoryActionC2SPacket(slot, getCodeBlock()));
+            player.getInventory().setStack(slot, getCodeBlock());
         } finally {
             isExecuting = false;
         }
