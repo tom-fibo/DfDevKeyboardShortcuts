@@ -42,8 +42,6 @@ public class DfDevKeyboardShortcutsClient implements ClientModInitializer {
                     Blocks.RED_NETHER_BRICKS, Blocks.COAL_BLOCK, Blocks.END_STONE, Blocks.COBBLESTONE,
                     Blocks.OAK_PLANKS, Blocks.MOSSY_COBBLESTONE, Blocks.BRICKS, Blocks.LAPIS_ORE, Blocks.LAPIS_BLOCK,
                     Blocks.DIAMOND_BLOCK, Blocks.GOLD_BLOCK, Blocks.EMERALD_ORE, Blocks.EMERALD_BLOCK));
-    private static Set<Block> shiftOffsetBlocks = new HashSet<Block>(
-            Arrays.asList(Blocks.STONE, Blocks.PISTON, Blocks.STICKY_PISTON));
 
     public static boolean isActive(BlockPos targetPos) {
         MinecraftClient client = MinecraftClient.getInstance();
