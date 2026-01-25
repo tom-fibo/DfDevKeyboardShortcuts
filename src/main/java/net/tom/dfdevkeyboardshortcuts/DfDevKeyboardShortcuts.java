@@ -10,6 +10,6 @@ public class DfDevKeyboardShortcuts implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		LOGGER.info("Initializing Dev Keyboard Shortcuts");
+		LOGGER.info("Initializing Df Dev Keyboard Shortcuts");
 	}
 }
