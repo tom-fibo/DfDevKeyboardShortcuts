@@ -115,18 +115,18 @@ public class DfDevKeyboardShortcutsClient implements ClientModInitializer {
 
                     ClientPlayNetworkHandler networkHandler = client.getNetworkHandler();
                     PlayerInventory inventory = player.getInventory();
-                    networkHandler.sendPacket(new CreativeInventoryActionC2SPacket(0, codeblock));
+                    networkHandler.sendPacket(new CreativeInventoryActionC2SPacket(36, codeblock));
                     inventory.setStack(0, codeblock);
                     networkHandler.sendPacket(new CreativeInventoryActionC2SPacket(17, referenceBook));
                     inventory.setStack(17, referenceBook);
                     if (inventory.getStack(7).getItem() == Items.DIAMOND
                             && inventory.getStack(7).getName().getString().contains("Code Blocks")) {
-                        networkHandler.sendPacket(new CreativeInventoryActionC2SPacket(7, new ItemStack(Items.AIR)));
+                        networkHandler.sendPacket(new CreativeInventoryActionC2SPacket(43, new ItemStack(Items.AIR)));
                         inventory.setStack(7, new ItemStack(Items.AIR));
                     }
                     if (inventory.getStack(8).getItem() == Items.IRON_INGOT
                             && inventory.getStack(8).getName().getString().contains("Values")) {
-                        networkHandler.sendPacket(new CreativeInventoryActionC2SPacket(8, new ItemStack(Items.AIR)));
+                        networkHandler.sendPacket(new CreativeInventoryActionC2SPacket(44, new ItemStack(Items.AIR)));
                         inventory.setStack(8, new ItemStack(Items.AIR));
                     }
                 }
