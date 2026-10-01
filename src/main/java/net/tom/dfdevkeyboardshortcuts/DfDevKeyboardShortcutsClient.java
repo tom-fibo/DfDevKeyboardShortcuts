@@ -9,27 +9,28 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.NbtComponent;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.packet.c2s.play.CreativeInventoryActionC2SPacket;
-import net.minecraft.network.packet.c2s.play.PlayerInputC2SPacket;
-import net.minecraft.text.Text;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.util.PlayerInput;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.protocol.game.ServerboundSetCreativeModeSlotPacket;
+import net.minecraft.network.protocol.game.ServerboundPlayerInputPacket;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.player.Input;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.Vec3;
 
 public class DfDevKeyboardShortcutsClient implements ClientModInitializer {
 
@@ -45,34 +46,34 @@ public class DfDevKeyboardShortcutsClient implements ClientModInitializer {
                     Blocks.NETHERITE_BLOCK));
 
     public static boolean isActive(BlockPos targetPos) {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (isExecuting || client.player == null || !client.player.isCreative() || client.currentScreen != null) {
+        Minecraft client = Minecraft.getInstance();
+        if (isExecuting || client.player == null || !client.player.isCreative() || client.gui.screen() != null) {
             return false;
         }
-        Block targetBlock = client.world.getBlockState(targetPos).getBlock();
+        Block targetBlock = client.level.getBlockState(targetPos).getBlock();
         if (noInteractBlocks.contains(targetBlock)) {
             return false;
         }
-        ItemStack mainHandStack = client.player.getMainHandStack();
-        if (mainHandStack.getItem() != Items.LIME_CONCRETE) {
+        ItemStack mainHandStack = client.player.getMainHandItem();
+        if (mainHandStack.getItem() != Items.CONCRETE.lime()) {
             return false;
         }
-        NbtComponent customData = mainHandStack.get(DataComponentTypes.CUSTOM_DATA);
+        CustomData customData = mainHandStack.get(DataComponents.CUSTOM_DATA);
         if (customData == null) {
             return false;
         }
-        return customData.copyNbt().contains(NBT_TAG);
+        return customData.copyTag().contains(NBT_TAG);
     }
 
     public static ItemStack getCodeBlock() {
-        ItemStack codeblock = new ItemStack(Items.LIME_CONCRETE);
+        ItemStack codeblock = new ItemStack(Items.CONCRETE.lime());
 
-        NbtCompound nbt = new NbtCompound();
+        CompoundTag nbt = new CompoundTag();
         nbt.putBoolean(NBT_TAG, true);
-        codeblock.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbt));
+        codeblock.set(DataComponents.CUSTOM_DATA, CustomData.of(nbt));
 
-        codeblock.set(DataComponentTypes.CUSTOM_NAME,
-                Text.literal("Codeblock").styled(style -> style.withItalic(false)));
+        codeblock.set(DataComponents.CUSTOM_NAME,
+                Component.literal("Codeblock").withStyle(style -> style.withItalic(false)));
 
         return codeblock;
     }
@@ -80,15 +81,15 @@ public class DfDevKeyboardShortcutsClient implements ClientModInitializer {
     public static ItemStack getReferenceBook() {
         ItemStack referenceBook = new ItemStack(Items.WRITTEN_BOOK);
 
-        NbtCompound hypercubeItemInstance = new NbtCompound();
+        CompoundTag hypercubeItemInstance = new CompoundTag();
         hypercubeItemInstance.putString("hypercube:item_instance", "reference_book");
 
-        NbtCompound publicBukkitValues = new NbtCompound();
+        CompoundTag publicBukkitValues = new CompoundTag();
         publicBukkitValues.put("PublicBukkitValues", hypercubeItemInstance);
-        referenceBook.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(publicBukkitValues));
+        referenceBook.set(DataComponents.CUSTOM_DATA, CustomData.of(publicBukkitValues));
 
-        referenceBook.set(DataComponentTypes.CUSTOM_NAME,
-                Text.literal("Reference Book").styled(style -> style.withItalic(false)));
+        referenceBook.set(DataComponents.CUSTOM_NAME,
+                Component.literal("Reference Book").withStyle(style -> style.withItalic(false)));
 
         return referenceBook;
     }
@@ -106,28 +107,28 @@ public class DfDevKeyboardShortcutsClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register((a) -> {
             if (updateInventory) {
                 updateInventory = false;
-                MinecraftClient client = MinecraftClient.getInstance();
-                ClientPlayerEntity player = client.player;
-                if (player != null && player.isCreative() && client.getNetworkHandler() != null) {
+                Minecraft client = Minecraft.getInstance();
+                LocalPlayer player = client.player;
+                if (player != null && player.isCreative() && client.getConnection() != null) {
 
                     ItemStack codeblock = getCodeBlock();
                     ItemStack referenceBook = getReferenceBook();
 
-                    ClientPlayNetworkHandler networkHandler = client.getNetworkHandler();
-                    PlayerInventory inventory = player.getInventory();
-                    networkHandler.sendPacket(new CreativeInventoryActionC2SPacket(36, codeblock));
-                    inventory.setStack(0, codeblock);
-                    networkHandler.sendPacket(new CreativeInventoryActionC2SPacket(17, referenceBook));
-                    inventory.setStack(17, referenceBook);
-                    if (inventory.getStack(7).getItem() == Items.DIAMOND
-                            && inventory.getStack(7).getName().getString().contains("Code Blocks")) {
-                        networkHandler.sendPacket(new CreativeInventoryActionC2SPacket(43, new ItemStack(Items.AIR)));
-                        inventory.setStack(7, new ItemStack(Items.AIR));
+                    ClientPacketListener networkHandler = client.getConnection();
+                    Inventory inventory = player.getInventory();
+                    networkHandler.send(new ServerboundSetCreativeModeSlotPacket(36, codeblock));
+                    inventory.setItem(0, codeblock);
+                    networkHandler.send(new ServerboundSetCreativeModeSlotPacket(17, referenceBook));
+                    inventory.setItem(17, referenceBook);
+                    if (inventory.getItem(7).getItem() == Items.DIAMOND
+                            && inventory.getItem(7).getHoverName().getString().contains("Code Blocks")) {
+                        networkHandler.send(new ServerboundSetCreativeModeSlotPacket(43, new ItemStack(Items.AIR)));
+                        inventory.setItem(7, new ItemStack(Items.AIR));
                     }
-                    if (inventory.getStack(8).getItem() == Items.IRON_INGOT
-                            && inventory.getStack(8).getName().getString().contains("Values")) {
-                        networkHandler.sendPacket(new CreativeInventoryActionC2SPacket(44, new ItemStack(Items.AIR)));
-                        inventory.setStack(8, new ItemStack(Items.AIR));
+                    if (inventory.getItem(8).getItem() == Items.IRON_INGOT
+                            && inventory.getItem(8).getHoverName().getString().contains("Values")) {
+                        networkHandler.send(new ServerboundSetCreativeModeSlotPacket(44, new ItemStack(Items.AIR)));
+                        inventory.setItem(8, new ItemStack(Items.AIR));
                     }
                 }
             }
@@ -135,64 +136,64 @@ public class DfDevKeyboardShortcutsClient implements ClientModInitializer {
 
         UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
             if (!isActive(hitResult.getBlockPos()))
-                return ActionResult.PASS;
-            if (world.isClient()) {
+                return InteractionResult.PASS;
+            if (world.isClientSide()) {
                 placeBlock(player, Items.IRON_BLOCK, Items.OBSIDIAN, hitResult);
-                return ActionResult.FAIL;
+                return InteractionResult.FAIL;
             }
-            return ActionResult.PASS;
+            return InteractionResult.PASS;
         });
 
         AttackBlockCallback.EVENT.register((player, world, hand, pos, direction) -> {
             if (!isActive(pos))
-                return ActionResult.PASS;
-            if (world.isClient()) {
-                BlockHitResult hitResult = new BlockHitResult(pos.toCenterPos(), direction, pos, false);
+                return InteractionResult.PASS;
+            if (world.isClientSide()) {
+                BlockHitResult hitResult = new BlockHitResult(Vec3.atCenterOf(pos), direction, pos, false);
                 placeBlock(player, Items.PRISMARINE, Items.PURPUR_BLOCK, hitResult);
-                return ActionResult.FAIL;
+                return InteractionResult.FAIL;
             }
-            return ActionResult.PASS;
+            return InteractionResult.PASS;
         });
 
     }
 
-    public static void placeBlock(PlayerEntity player, Item normalItem, Item sneakItem, BlockHitResult hitResult) {
+    public static void placeBlock(Player player, Item normalItem, Item sneakItem, BlockHitResult hitResult) {
         if (isExecuting)
             return;
 
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.player == null || client.interactionManager == null || client.getNetworkHandler() == null) {
+        Minecraft client = Minecraft.getInstance();
+        if (client.player == null || client.gameMode == null || client.getConnection() == null) {
             return;
         }
         isExecuting = true;
         try {
 
-            int slot = player.getInventory().getSlotWithStack(player.getMainHandStack()); // First hotbar slot
-            boolean isSneaking = client.player.isSneaking();
+            int slot = player.getInventory().findSlotMatchingItem(player.getMainHandItem()); // First hotbar slot
+            boolean isSneaking = client.player.isShiftKeyDown();
 
-            //ItemStack originalStack = player.getInventory().getStack(slot).copy();
+            //ItemStack originalStack = player.getInventory().getItem(slot).copy();
             Item itemToPlace = isSneaking ? sneakItem : normalItem;
             DfDevKeyboardShortcuts.LOGGER.info("Placing {}", itemToPlace);
             ItemStack newStack = new ItemStack(itemToPlace);
 
             //BlockPos signPos = hitResult.getBlockPos().offset(Direction.WEST);
 
-            client.getNetworkHandler().sendPacket(new CreativeInventoryActionC2SPacket(slot + 36, newStack));
+            client.getConnection().send(new ServerboundSetCreativeModeSlotPacket(slot + 36, newStack));
 
             if (isSneaking) {
-                client.getNetworkHandler().sendPacket(
-                        new PlayerInputC2SPacket(new PlayerInput(false, false, false, false, false, false, false)));
+                client.getConnection().send(
+                        new ServerboundPlayerInputPacket(new Input(false, false, false, false, false, false, false)));
             }
-            client.interactionManager.interactBlock(client.player, Hand.MAIN_HAND, hitResult);
+            client.gameMode.useItemOn(client.player, InteractionHand.MAIN_HAND, hitResult);
             if (isSneaking) {
-                client.getNetworkHandler().sendPacket(new PlayerInputC2SPacket(client.player.getLastPlayerInput()));
+                client.getConnection().send(new ServerboundPlayerInputPacket(client.player.getLastSentInput()));
             }
 
-            //client.interactionManager.interactBlock(client.player, Hand.OFF_HAND,
+            //client.gameMode.useItemOn(client.player, InteractionHand.OFF_HAND,
             //        new BlockHitResult(signPos.toCenterPos(), Direction.UP, signPos, false));
 
-            client.getNetworkHandler().sendPacket(new CreativeInventoryActionC2SPacket(slot + 36, getCodeBlock()));
-            player.getInventory().setStack(slot, getCodeBlock());
+            client.getConnection().send(new ServerboundSetCreativeModeSlotPacket(slot + 36, getCodeBlock()));
+            player.getInventory().setItem(slot, getCodeBlock());
         } finally {
             isExecuting = false;
         }

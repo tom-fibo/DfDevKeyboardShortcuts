@@ -6,18 +6,18 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import net.minecraft.client.Keyboard;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.HitResult;
+import net.minecraft.client.KeyboardHandler;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.tom.dfdevkeyboardshortcuts.DfDevKeyboardShortcuts;
 import net.tom.dfdevkeyboardshortcuts.DfDevKeyboardShortcutsClient;
 
-@Mixin(Keyboard.class)
+@Mixin(KeyboardHandler.class)
 public class KeyboardMixin {
 
     private static final int scancodeZ = GLFW.glfwGetKeyScancode(GLFW.GLFW_KEY_Z);
@@ -28,8 +28,8 @@ public class KeyboardMixin {
     private static final int scancodeQ = GLFW.glfwGetKeyScancode(GLFW.GLFW_KEY_Q);
     private static final int scancodeR = GLFW.glfwGetKeyScancode(GLFW.GLFW_KEY_R);
 
-    @Inject(method = "onKey", at = @At(value = "HEAD"), cancellable = true)
-    private void onKey(long window, int key, KeyInput input, CallbackInfo ci) {
+    @Inject(method = "keyPress", at = @At(value = "HEAD"), cancellable = true)
+    private void onKey(long window, int key, KeyEvent input, CallbackInfo ci) {
         // Extract the data from the new object so the rest of your code works
         int scancode = input.scancode();
         int modifiers = input.modifiers();
@@ -40,18 +40,18 @@ public class KeyboardMixin {
         if (key != 1) {
             return;
         }
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         //KeyBinding dropKey = client.options.dropKey;
         //KeyBinding loadToolbarKey = client.options.loadToolbarActivatorKey;
-        if (client.currentScreen == null
+        if (client.gui.screen() == null
                 && (scancode == scancodeQ || scancode == scancodeZ)
                 && client.player != null) {
-            ItemStack mainHandStack = client.player.getMainHandStack();
-            if (mainHandStack.getItem() != Items.LIME_CONCRETE
-                    || mainHandStack.get(DataComponentTypes.CUSTOM_DATA) == null) {
+            ItemStack mainHandStack = client.player.getMainHandItem();
+            if (mainHandStack.getItem() != Items.CONCRETE.lime()
+                    || mainHandStack.get(DataComponents.CUSTOM_DATA) == null) {
                 if (scancode == scancodeQ) {
                     boolean entireStack = (modifiers & GLFW.GLFW_MOD_CONTROL) > 0;
-                    client.player.dropSelectedItem(entireStack);
+                    client.player.drop(entireStack);
                 } else if (scancode == scancodeZ) {
                     DfDevKeyboardShortcutsClient.updateInventory = true;
                 }
@@ -60,11 +60,11 @@ public class KeyboardMixin {
             }
         }
 
-        if (client.crosshairTarget == null || client.crosshairTarget.getType() != HitResult.Type.BLOCK) {
+        if (client.hitResult == null || client.hitResult.getType() != HitResult.Type.BLOCK) {
             return;
         }
 
-        BlockHitResult hitResult = (BlockHitResult) client.crosshairTarget;
+        BlockHitResult hitResult = (BlockHitResult) client.hitResult;
         if (!DfDevKeyboardShortcutsClient.isActive(hitResult.getBlockPos())) {
             return;
         }
