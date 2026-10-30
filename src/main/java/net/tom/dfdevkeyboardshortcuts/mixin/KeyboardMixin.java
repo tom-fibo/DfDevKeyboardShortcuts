@@ -1,10 +1,11 @@
 package net.tom.dfdevkeyboardshortcuts.mixin;
 
-import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+import com.mojang.blaze3d.platform.InputConstants;
 
 import net.minecraft.client.KeyboardHandler;
 import net.minecraft.client.Minecraft;
@@ -14,35 +15,37 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
-import net.tom.dfdevkeyboardshortcuts.DfDevKeyboardShortcuts;
 import net.tom.dfdevkeyboardshortcuts.DfDevKeyboardShortcutsClient;
 
 @Mixin(KeyboardHandler.class)
 public class KeyboardMixin {
 
-    private static final int scancodeZ = GLFW.glfwGetKeyScancode(GLFW.GLFW_KEY_Z);
-    private static final int scancodeX = GLFW.glfwGetKeyScancode(GLFW.GLFW_KEY_X);
-    private static final int scancodeC = GLFW.glfwGetKeyScancode(GLFW.GLFW_KEY_C);
-    private static final int scancodeF = GLFW.glfwGetKeyScancode(GLFW.GLFW_KEY_F);
-    private static final int scancodeG = GLFW.glfwGetKeyScancode(GLFW.GLFW_KEY_G);
-    private static final int scancodeQ = GLFW.glfwGetKeyScancode(GLFW.GLFW_KEY_Q);
-    private static final int scancodeR = GLFW.glfwGetKeyScancode(GLFW.GLFW_KEY_R);
+    private static final int scancodeZ = InputConstants.KEY_Z;
+    private static final int scancodeX = InputConstants.KEY_X;
+    private static final int scancodeC = InputConstants.KEY_C;
+    private static final int scancodeF = InputConstants.KEY_F;
+    private static final int scancodeG = InputConstants.KEY_G;
+    private static final int scancodeQ = InputConstants.KEY_Q;
+    private static final int scancodeR = InputConstants.KEY_R;
 
     @Inject(method = "keyPress", at = @At(value = "HEAD"), cancellable = true)
     private void onKey(long window, int key, KeyEvent input, CallbackInfo ci) {
         // Extract the data from the new object so the rest of your code works
-        int scancode = input.scancode();
+        int scancode = input.key();
         int modifiers = input.modifiers();
-        //key: 0:off, 1:on, 2:held
-        //scancode: key #
-        //modifers: shift:1, control:2, alt:4
-        DfDevKeyboardShortcuts.LOGGER.info("onKey - key:{}, scancode:{}, modifiers:{}", key, scancode, modifiers);
+        // key: 0:released, 1:pressed, -1:repeat
+        // scancode: SDL scancode (InputConstants.KEY_*)
+        // modifiers: shift:3, control:192, alt:768
+        // (use input.hasShiftDown()/hasControlDown()/hasAltDown())
+
+        // DfDevKeyboardShortcuts.LOGGER.info("onKey - key:{}, scancode:{},
+        // modifiers:{}", key, scancode, modifiers);
         if (key != 1) {
             return;
         }
         Minecraft client = Minecraft.getInstance();
-        //KeyBinding dropKey = client.options.dropKey;
-        //KeyBinding loadToolbarKey = client.options.loadToolbarActivatorKey;
+        // KeyBinding dropKey = client.options.dropKey;
+        // KeyBinding loadToolbarKey = client.options.loadToolbarActivatorKey;
         if (client.gui.screen() == null
                 && (scancode == scancodeQ || scancode == scancodeZ)
                 && client.player != null) {
@@ -50,8 +53,7 @@ public class KeyboardMixin {
             if (mainHandStack.getItem() != Items.CONCRETE.lime()
                     || mainHandStack.get(DataComponents.CUSTOM_DATA) == null) {
                 if (scancode == scancodeQ) {
-                    boolean entireStack = (modifiers & GLFW.GLFW_MOD_CONTROL) > 0;
-                    client.player.drop(entireStack);
+                    client.gameMode.dropItem(client.player, input.hasControlDown());
                 } else if (scancode == scancodeZ) {
                     DfDevKeyboardShortcutsClient.updateInventory = true;
                 }

@@ -96,7 +96,7 @@ public class DfDevKeyboardShortcutsClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        //KeyBinds.register();
+        // KeyBinds.register();
 
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
             if (message.getString().contains("You are now in dev mode.")) {
@@ -171,12 +171,12 @@ public class DfDevKeyboardShortcutsClient implements ClientModInitializer {
             int slot = player.getInventory().findSlotMatchingItem(player.getMainHandItem()); // First hotbar slot
             boolean isSneaking = client.player.isShiftKeyDown();
 
-            //ItemStack originalStack = player.getInventory().getItem(slot).copy();
+            // ItemStack originalStack = player.getInventory().getItem(slot).copy();
             Item itemToPlace = isSneaking ? sneakItem : normalItem;
-            DfDevKeyboardShortcuts.LOGGER.info("Placing {}", itemToPlace);
+            // DfDevKeyboardShortcuts.LOGGER.info("Placing {}", itemToPlace);
             ItemStack newStack = new ItemStack(itemToPlace);
 
-            //BlockPos signPos = hitResult.getBlockPos().offset(Direction.WEST);
+            // BlockPos signPos = hitResult.getBlockPos().offset(Direction.WEST);
 
             client.getConnection().send(new ServerboundSetCreativeModeSlotPacket(slot + 36, newStack));
 
@@ -189,8 +189,8 @@ public class DfDevKeyboardShortcutsClient implements ClientModInitializer {
                 client.getConnection().send(new ServerboundPlayerInputPacket(client.player.getLastSentInput()));
             }
 
-            //client.gameMode.useItemOn(client.player, InteractionHand.OFF_HAND,
-            //        new BlockHitResult(signPos.toCenterPos(), Direction.UP, signPos, false));
+            // client.gameMode.useItemOn(client.player, InteractionHand.OFF_HAND,
+            // new BlockHitResult(signPos.toCenterPos(), Direction.UP, signPos, false));
 
             client.getConnection().send(new ServerboundSetCreativeModeSlotPacket(slot + 36, getCodeBlock()));
             player.getInventory().setItem(slot, getCodeBlock());
